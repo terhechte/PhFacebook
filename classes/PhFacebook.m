@@ -18,6 +18,8 @@
 
 @implementation PhFacebook
 
+@synthesize delegate = _delegate;
+
 #pragma mark Initialization
 
 - (id) initWithApplicationID: (NSString*) appID delegate: (id) delegate
@@ -237,8 +239,9 @@
         NSURLResponse *response = nil;
         NSError *error = nil;
         NSData *data = [NSURLConnection sendSynchronousRequest: req returningResponse: &response error: &error];
-
-        if ([_delegate respondsToSelector: @selector(requestResult:)])
+        
+        if ([_delegate respondsToSelector: @selector(requestResult:)] ||
+            allParams[@"block"])
         {
             NSString *str = [[NSString alloc] initWithBytesNoCopy: (void*)[data bytes] length: [data length] encoding:NSASCIIStringEncoding freeWhenDone: NO];
 
@@ -248,27 +251,39 @@
                 data, @"raw",                                    
                 self, @"sender",
                 nil];
-            [_delegate performSelectorOnMainThread:@selector(requestResult:) withObject: result waitUntilDone:YES];
+            if (allParams[@"block"]) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    PhFBResultBlock resultBlock = allParams[@"block"];
+                    resultBlock(result);
+                });
+            } else {
+                [_delegate performSelectorOnMainThread:@selector(requestResult:) withObject: result waitUntilDone:YES];
+            }
             [str release];
         }
     }
     [pool drain];
 }
 
-- (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest
+- (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest block:(PhFBResultBlock)block
 {
     NSMutableDictionary *allParams = [NSMutableDictionary dictionaryWithObject: request forKey: @"request"];
     if (params != nil)
         [allParams setObject: params forKey: @"params"];
         
     [allParams setObject: [NSNumber numberWithBool: postRequest] forKey: @"postRequest"];
+    
+    if (block)
+        [allParams setObject:Block_copy(block) forKey:@"block"];
+    
+    Block_release(block);
 
 	[NSThread detachNewThreadSelector: @selector(sendFacebookRequest:) toTarget: self withObject: allParams];    
 }
 
-- (void) sendRequest: (NSString*) request
+- (void) sendRequest: (NSString*) request block:(PhFBResultBlock)block
 {
-    [self sendRequest: request params: nil usePostRequest: NO];
+    [self sendRequest: request params: nil usePostRequest: NO block:block];
 }
 
 - (void) sendFacebookFQLRequest: (NSString*) query

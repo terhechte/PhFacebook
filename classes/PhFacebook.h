@@ -11,6 +11,8 @@
 @class PhWebViewController;
 @class PhAuthenticationToken;
 
+typedef void (^PhFBResultBlock)(NSDictionary *result);
+
 @interface PhFacebook : NSObject
 {
 @private
@@ -21,6 +23,8 @@
     NSString *_permissions;
 }
 
+@property (retain) id delegate;
+
 - (id) initWithApplicationID: (NSString*) appID delegate: (id) delegate;
 
 // permissions: an array of required permissions
@@ -30,8 +34,8 @@
 
 // request: the short version of the Facebook Graph API, e.g. "me/feed"
 // see http://developers.facebook.com/docs/api
-- (void) sendRequest: (NSString*) request;
-- (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest;
+- (void) sendRequest: (NSString*) request block:(PhFBResultBlock)block;
+- (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest block:(PhFBResultBlock)block;
 
 // query: the query to send to FQL API, e.g. "SELECT uid, sex, name from user WHERE uid = me()"
 // see http://developers.facebook.com/docs/reference/fql/
