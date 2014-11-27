@@ -34,6 +34,7 @@ typedef void (^PhFBResultBlock)(NSDictionary *result);
 
 // request: the short version of the Facebook Graph API, e.g. "me/feed"
 // see http://developers.facebook.com/docs/api
+- (id) sendSyncRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest;
 - (void) sendRequest: (NSString*) request block:(PhFBResultBlock)block;
 - (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest block:(PhFBResultBlock)block;
 

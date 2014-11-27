@@ -182,10 +182,8 @@
     return [[_authToken.authenticationToken copy] autorelease];
 }
 
-- (void) sendFacebookRequest: (NSDictionary*) allParams
+- (id) sendFacebookRequest: (NSDictionary*) allParams
 {
-    NSAutoreleasePool *pool = [NSAutoreleasePool new];
-
     if (_authToken)
     {
         NSString *request = [allParams objectForKey: @"request"];
@@ -256,13 +254,28 @@
                     PhFBResultBlock resultBlock = allParams[@"block"];
                     resultBlock(result);
                 });
-            } else {
+            } else if (!allParams[@"synchronous"]) {
                 [_delegate performSelectorOnMainThread:@selector(requestResult:) withObject: result waitUntilDone:YES];
             }
             [str release];
+            if (allParams[@"synchronous"])
+                return result;
         }
     }
-    [pool drain];
+    
+    return nil;
+}
+
+- (id) sendSyncRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest {
+    NSMutableDictionary *allParams = [NSMutableDictionary dictionaryWithObject: request forKey: @"request"];
+    if (params != nil)
+        [allParams setObject: params forKey: @"params"];
+        
+    [allParams setObject: [NSNumber numberWithBool: postRequest] forKey: @"postRequest"];
+    
+    [allParams setObject:@YES forKey:@"synchronous"];
+    
+    return [self sendFacebookRequest:allParams];
 }
 
 - (void) sendRequest: (NSString*) request params: (NSDictionary*) params usePostRequest: (BOOL) postRequest block:(PhFBResultBlock)block
